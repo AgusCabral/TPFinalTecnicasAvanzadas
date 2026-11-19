@@ -1304,6 +1304,7 @@ class AplicacionCine:
                 return
             db.sincronizar_proveedores(proveedores)
             cargar()
+            page.update()
             mostrar_snack(page, f"Sincronizadas {len(proveedores)} plataformas de Argentina.")
 
         cargar()
