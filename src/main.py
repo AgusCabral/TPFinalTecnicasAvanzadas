@@ -390,9 +390,9 @@ class AplicacionCine:
                         width=56,
                         height=56,
                         border_radius=28,
-                        bgcolor=COLOR_DORADO,
+                        bgcolor=COLOR_MOOD,
                         alignment=CENTRO,
-                        content=ft.Icon(ft.Icons.LOCAL_MOVIES, color=COLOR_FONDO, size=30),
+                        content=ft.Text(value="🍿", size=40),
                     ),
                     ft.Column(
                         [
@@ -481,7 +481,7 @@ class AplicacionCine:
                             spacing=2,
                             expand=True,
                         ),
-                        BotonRojo("Nueva función", icon=ft.Icons.ADD, on_click=lambda _: self.abrir_formulario()),
+                        BotonRojo("Nueva película", icon=ft.Icons.ADD, on_click=lambda _: self.abrir_formulario()),
                     ]
                 ),
                 ft.Row([buscador, filtro_genero], spacing=12),
@@ -814,7 +814,7 @@ class AplicacionCine:
         dialogo = ft.AlertDialog(
             modal=True,
             bgcolor=COLOR_SUPERFICIE,
-            title=texto("Editar función" if editando else "Nueva función", 20, COLOR_TEXTO, negrita=True),
+            title=texto("Editar película" if editando else "Nueva película", 20, COLOR_TEXTO, negrita=True),
             content=ft.Container(
                 width=940,
                 height=600,
@@ -840,7 +840,7 @@ class AplicacionCine:
         )
         abrir_dialogo(page, dialogo)
 
-    # ----- Sección 2: Recomendador "Una sola carta" -----
+    # ----- Sección 2: Recomendador -----
 
     def seccion_recomendador(self):
         page = self.page
@@ -911,8 +911,8 @@ class AplicacionCine:
             [
                 ft.Column(
                     [
-                        texto("Una sola carta", 26, COLOR_TEXTO, negrita=True),
-                        texto("Te sugerimos qué ver, solo entre tus plataformas.", 13, COLOR_TEXTO_SUAVE),
+                        texto("Recomendador", 26, COLOR_TEXTO, negrita=True),
+                        texto("¿No sabes qué ver? ¡El recomendador te ayuda! Podes buscar recomendaciones que estén solo en tus plataformas, usar filtros o dejar que tus métricas te sorprendan.", 13, COLOR_TEXTO_SUAVE),
                     ],
                     spacing=2,
                 ),
@@ -1113,13 +1113,17 @@ class AplicacionCine:
         self.rec_carta.content = ft.Row([ticket], alignment=ft.MainAxisAlignment.CENTER)
         self.page.update()
 
+    def ir_al_diario(self):
+        self.nav.selected_index = 0
+        self.mostrar_seccion(0)
+
     def ver_ahora(self, _=None):
         c = self.carta
         if c["id_pelicula"]:
             pelicula = db.obtener_pelicula(c["id_pelicula"])
             pelicula["estado"] = "vista"
             pelicula["fecha_vista"] = date.today().isoformat()
-            self.abrir_formulario(pelicula=pelicula, al_guardar=self.siguiente_carta)
+            self.abrir_formulario(pelicula=pelicula, al_guardar=self.ir_al_diario)
             return
         precarga = {
             "tmdb_id": c["tmdb_id"],
@@ -1131,8 +1135,8 @@ class AplicacionCine:
             "estado": "vista",
             "fecha_vista": date.today().isoformat(),
         }
-        self.abrir_formulario(precarga=precarga, al_guardar=self.siguiente_carta)
-
+        self.abrir_formulario(precarga=precarga, al_guardar=self.ir_al_diario)
+    
     def guardar_pendiente(self, _=None):
         c = self.carta
         try:
@@ -1310,7 +1314,7 @@ class AplicacionCine:
                         ft.Column(
                             [
                                 texto("Mis plataformas", 26, COLOR_TEXTO, negrita=True),
-                                texto("Activá las que tenés contratadas en Argentina.", 13, COLOR_TEXTO_SUAVE),
+                                texto("Activá las que tenés contratadas en Argentina. Mantené actualizado el catálogo de plataformas con el botón de sincronización.", 13, COLOR_TEXTO_SUAVE),
                             ],
                             spacing=2,
                             expand=True,
@@ -1346,7 +1350,7 @@ def main(page: ft.Page):
     app = AplicacionCine(page)
     page.add(app.construir())
 
-    if not TMDB_API_KEY or TMDB_API_KEY == "PEGAR_ACA_TU_API_KEY":
+    if not TMDB_API_KEY:
         mostrar_snack(
             page,
             "Falta la API Key de TMDB en src/config.py. Podés cargar películas a mano mientras tanto.",
