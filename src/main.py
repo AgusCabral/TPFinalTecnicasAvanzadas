@@ -1,4 +1,4 @@
-"""Interfaz gráfica en Flet."""
+"""Diario de Películas Vistas: interfaz gráfica en Flet 1.0."""
 import sqlite3
 from datetime import date, datetime
 
@@ -20,26 +20,86 @@ COLOR_BORDE = "#6B5A1E"
 COLOR_TEXTO_SUAVE = "#B8B8C4"
 COLOR_FICHA = "#2A2A35"
 COLOR_PENDIENTE = "#C2410C"
+CENTRO = ft.Alignment(0, 0)
+
+def _contenido_boton(texto, icono, color):
+    if icono:
+        return ft.Row(
+            [ft.Icon(icono, color=color, size=18), ft.Text(texto, color=color)],
+            spacing=6,
+        )
+    return ft.Text(texto, color=color)
+
+
+def BotonRojo(texto, icon=None, on_click=None, **_):
+    """Botón principal rojo. Ignora bgcolor/color para mantener la firma anterior."""
+    return ft.FilledButton(
+        content=_contenido_boton(texto, icon, "#FFFFFF"),
+        on_click=on_click,
+        style=ft.ButtonStyle(bgcolor=COLOR_ROJO),
+    )
+
+
+def BotonTexto(texto, icon=None, on_click=None, **_):
+    return ft.TextButton(
+        content=_contenido_boton(texto, icon, COLOR_DORADO),
+        on_click=on_click,
+    )
+
+
+def BotonContorno(texto, icon=None, on_click=None, **_):
+    return ft.OutlinedButton(
+        content=_contenido_boton(texto, icon, COLOR_DORADO),
+        on_click=on_click,
+    )
+
+
+# ---------- Helpers de estilo (compatibles con Flet 1.x) ----------
+
+def pad_simetrico(horizontal=0, vertical=0):
+    return ft.Padding(left=horizontal, right=horizontal, top=vertical, bottom=vertical)
+
+
+def borde_todo(ancho, color):
+    lado = ft.BorderSide(ancho, color)
+    return ft.Border(top=lado, right=lado, bottom=lado, left=lado)
+
+
+def estilo(negrita=False, cursiva=False, espaciado=None):
+    return ft.TextStyle(
+        weight=ft.FontWeight.BOLD if negrita else None,
+        italic=True if cursiva else None,
+        letter_spacing=espaciado,
+    )
 
 
 # ---------- Utilidades de interfaz ----------
 
 def mostrar_snack(page, texto, color=COLOR_TARJETA):
     barra = ft.SnackBar(content=ft.Text(texto), bgcolor=color)
-    page.overlay.append(barra)
-    barra.open = True
-    page.update()
+    if hasattr(page, "show_dialog"):
+        page.show_dialog(barra)
+    else:
+        page.overlay.append(barra)
+        barra.open = True
+        page.update()
 
 
 def abrir_dialogo(page, dialogo):
-    page.overlay.append(dialogo)
-    dialogo.open = True
-    page.update()
+    if hasattr(page, "show_dialog"):
+        page.show_dialog(dialogo)
+    else:
+        page.overlay.append(dialogo)
+        dialogo.open = True
+        page.update()
 
 
 def cerrar_dialogo(page, dialogo):
-    dialogo.open = False
-    page.update()
+    if hasattr(page, "pop_dialog"):
+        page.pop_dialog()
+    else:
+        dialogo.open = False
+        page.update()
 
 
 def texto_pochoclos(puntaje):
@@ -73,8 +133,8 @@ def poster(ruta, ancho=90, alto=135):
         height=alto,
         border_radius=8,
         bgcolor=COLOR_TARJETA,
-        border=ft.border.all(1, COLOR_DORADO),
-        alignment=ft.alignment.center,
+        border=borde_todo(1, COLOR_DORADO),
+        alignment=CENTRO,
         content=ft.Icon(ft.Icons.MOVIE_OUTLINED, color=COLOR_DORADO, size=ancho // 3),
     )
 
@@ -84,7 +144,7 @@ def caja_ticket(contenido, ancho=None):
         width=ancho,
         padding=16,
         bgcolor=COLOR_TARJETA,
-        border=ft.border.all(1, COLOR_DORADO),
+        border=borde_todo(1, COLOR_DORADO),
         border_radius=12,
         content=contenido,
     )
@@ -93,7 +153,7 @@ def caja_ticket(contenido, ancho=None):
 def chip_etiqueta(nombre, tipo):
     return ft.Container(
         content=ft.Text(nombre, size=11),
-        padding=ft.padding.symmetric(horizontal=8, vertical=3),
+        padding=pad_simetrico(horizontal=8, vertical=3),
         border_radius=12,
         bgcolor=COLOR_FICHA if tipo == "mood" else "#1E3A3A",
     )
@@ -104,9 +164,9 @@ def chip_seleccionable(etiqueta, seleccion, al_cambiar):
     eid = etiqueta["id_etiqueta"]
     contenedor = ft.Container(
         content=ft.Text(etiqueta["nombre"], size=12),
-        padding=ft.padding.symmetric(horizontal=12, vertical=6),
+        padding=pad_simetrico(horizontal=12, vertical=6),
         border_radius=20,
-        border=ft.border.all(1, COLOR_DORADO),
+        border=borde_todo(1, COLOR_DORADO),
     )
 
     def pintar():
@@ -231,9 +291,9 @@ class AplicacionCine:
         )
 
         encabezado = ft.Container(
-            padding=ft.padding.symmetric(horizontal=20, vertical=14),
+            padding=pad_simetrico(horizontal=20, vertical=14),
             bgcolor=COLOR_TARJETA,
-            border=ft.border.only(bottom=ft.BorderSide(2, COLOR_DORADO)),
+            border=ft.Border(bottom=ft.BorderSide(2, COLOR_DORADO)),
             content=ft.Row(
                 [
                     ft.Icon(ft.Icons.THEATERS, color=COLOR_ROJO, size=34),
@@ -242,15 +302,14 @@ class AplicacionCine:
                             ft.Text(
                                 "DIARIO DE PELÍCULAS VISTAS",
                                 size=20,
-                                weight=ft.FontWeight.BOLD,
                                 color=COLOR_DORADO,
-                                letter_spacing=2,
+                                style=estilo(negrita=True, espaciado=2),
                             ),
                             ft.Text(
                                 "Cartelera personal · Función continua",
                                 size=12,
-                                italic=True,
                                 color=COLOR_TEXTO_SUAVE,
+                                style=estilo(cursiva=True),
                             ),
                         ],
                         spacing=0,
@@ -303,19 +362,19 @@ class AplicacionCine:
             width=190,
             value=self.filtro_estado,
             options=[
-                ft.dropdown.Option(key="todas", text="Todas"),
-                ft.dropdown.Option(key="vista", text="Vistas"),
-                ft.dropdown.Option(key="pendiente", text="Pendientes"),
+                ft.DropdownOption(key="todas", text="Todas"),
+                ft.DropdownOption(key="vista", text="Vistas"),
+                ft.DropdownOption(key="pendiente", text="Pendientes"),
             ],
-            on_change=al_cambiar,
+            on_select=al_cambiar,
         )
         filtro_genero = ft.Dropdown(
             label="Género",
             width=220,
             value=str(self.filtro_genero) if self.filtro_genero else "todos",
-            options=[ft.dropdown.Option(key="todos", text="Todos los géneros")]
-            + [ft.dropdown.Option(key=str(g["id_genero"]), text=g["nombre"]) for g in self.generos],
-            on_change=al_cambiar,
+            options=[ft.DropdownOption(key="todos", text="Todos los géneros")]
+            + [ft.DropdownOption(key=str(g["id_genero"]), text=g["nombre"]) for g in self.generos],
+            on_select=al_cambiar,
         )
 
         self.lista_diario = ft.Column(spacing=12)
@@ -325,9 +384,14 @@ class AplicacionCine:
             [
                 ft.Row(
                     [
-                        ft.Text("Mi Diario y Pendientes", size=22, weight=ft.FontWeight.BOLD,
-                                color=COLOR_DORADO, expand=True),
-                        ft.ElevatedButton(
+                        ft.Text(
+                            "Mi Diario y Pendientes",
+                            size=22,
+                            color=COLOR_DORADO,
+                            style=estilo(negrita=True),
+                            expand=True,
+                        ),
+                        BotonRojo(
                             "Nueva función",
                             icon=ft.Icons.ADD,
                             bgcolor=COLOR_ROJO,
@@ -357,11 +421,11 @@ class AplicacionCine:
             content=ft.Text(
                 "FUNCIÓN VISTA" if vista else "EN CARTELERA (PENDIENTE)",
                 size=11,
-                weight=ft.FontWeight.BOLD,
                 color="#0B0B0F" if vista else "#FFFFFF",
+                style=estilo(negrita=True),
             ),
             bgcolor=COLOR_DORADO if vista else COLOR_PENDIENTE,
-            padding=ft.padding.symmetric(horizontal=8, vertical=3),
+            padding=pad_simetrico(horizontal=8, vertical=3),
             border_radius=4,
         )
         chips = ft.Row(
@@ -380,21 +444,21 @@ class AplicacionCine:
 
         info = ft.Column(
             [
-                ft.Text(p["titulo"], size=18, weight=ft.FontWeight.BOLD),
+                ft.Text(p["titulo"], size=18, style=estilo(negrita=True)),
                 badge,
                 ft.Text("  ·  ".join(d for d in datos if d), size=12, color=COLOR_TEXTO_SUAVE),
                 ft.Text(texto_pochoclos(p["puntaje"]) if vista else "Aún sin pochoclos", size=14),
                 ft.Text(f"Vista el {p['fecha_vista']}" if vista and p["fecha_vista"] else "", size=12),
                 chips,
-                ft.Text(f"“{extracto}”", italic=True, size=12) if extracto else ft.Container(),
+                ft.Text(f"“{extracto}”", size=12, style=estilo(cursiva=True)) if extracto else ft.Container(),
                 ft.Row(
                     [
-                        ft.TextButton(
+                        BotonTexto(
                             "Editar",
                             icon=ft.Icons.EDIT,
                             on_click=lambda _, pid=p["id_pelicula"]: self.editar(pid),
                         ),
-                        ft.TextButton(
+                        BotonTexto(
                             "Eliminar",
                             icon=ft.Icons.DELETE_OUTLINE,
                             on_click=lambda _, pel=p: self.confirmar_eliminar(pel),
@@ -408,7 +472,7 @@ class AplicacionCine:
         return ft.Container(
             padding=12,
             bgcolor=COLOR_TARJETA,
-            border=ft.border.all(1, COLOR_BORDE),
+            border=borde_todo(1, COLOR_BORDE),
             border_radius=12,
             content=ft.Row(
                 [poster(p["poster_path"]), info],
@@ -435,8 +499,8 @@ class AplicacionCine:
             title=ft.Text("¿Eliminar del diario?"),
             content=ft.Text(f"Se va a borrar “{pelicula['titulo']}”. Esta acción no se puede deshacer."),
             actions=[
-                ft.TextButton("Cancelar", on_click=lambda _: cerrar_dialogo(page, dialogo)),
-                ft.ElevatedButton("Eliminar", bgcolor=COLOR_ROJO, color="#FFFFFF", on_click=eliminar),
+                BotonTexto("Cancelar", on_click=lambda _: cerrar_dialogo(page, dialogo)),
+                BotonRojo("Eliminar", bgcolor=COLOR_ROJO, color="#FFFFFF", on_click=eliminar),
             ],
         )
         abrir_dialogo(page, dialogo)
@@ -469,15 +533,15 @@ class AplicacionCine:
             label="Género",
             expand=True,
             value=str(base.get("id_genero") or 18),
-            options=[ft.dropdown.Option(key=str(g["id_genero"]), text=g["nombre"]) for g in self.generos],
+            options=[ft.DropdownOption(key=str(g["id_genero"]), text=g["nombre"]) for g in self.generos],
         )
         f_estado = ft.Dropdown(
             label="Estado",
             expand=True,
             value=estado_inicial,
             options=[
-                ft.dropdown.Option(key="vista", text="Vista"),
-                ft.dropdown.Option(key="pendiente", text="Pendiente"),
+                ft.DropdownOption(key="vista", text="Vista"),
+                ft.DropdownOption(key="pendiente", text="Pendiente"),
             ],
         )
         f_fecha = ft.TextField(
@@ -498,7 +562,7 @@ class AplicacionCine:
             selector.set_habilitado(f_estado.value == "vista")
             page.update()
 
-        f_estado.on_change = cambio_estado
+        f_estado.on_select = cambio_estado
 
         def fila_resultado(r):
             anio = (r.get("release_date") or "")[:4]
@@ -511,7 +575,7 @@ class AplicacionCine:
                         poster(r.get("poster_path"), 40, 60),
                         ft.Column(
                             [
-                                ft.Text(r.get("title", ""), weight=ft.FontWeight.BOLD),
+                                ft.Text(r.get("title", ""), style=estilo(negrita=True)),
                                 ft.Text(anio or "Año desconocido", size=12, color=COLOR_TEXTO_SUAVE),
                             ],
                             spacing=2,
@@ -611,20 +675,15 @@ class AplicacionCine:
             modal=True,
             bgcolor=COLOR_TARJETA,
             title=ft.Text("Editar función" if editando else "Nueva función", color=COLOR_DORADO),
-            content=ft.Container(
-                width=540,
-                height=560,
+                        content=ft.Container(
+                width=900,
+                height=620,
                 content=ft.Column(
                     [
                         ft.Row(
                             [
                                 f_busqueda,
-                                ft.ElevatedButton(
-                                    "Buscar en TMDB",
-                                    bgcolor=COLOR_ROJO,
-                                    color="#FFFFFF",
-                                    on_click=lambda _: buscar(),
-                                ),
+                                BotonRojo("Buscar en TMDB", on_click=lambda _: buscar()),
                             ]
                         ),
                         resultados,
@@ -634,21 +693,39 @@ class AplicacionCine:
                         ),
                         ft.Row([f_genero, f_estado]),
                         f_fecha,
-                        ft.Text("Puntuación", weight=ft.FontWeight.BOLD),
-                        selector,
-                        f_nota,
-                        ft.Text("Contexto", weight=ft.FontWeight.BOLD, color=COLOR_DORADO),
-                        chips_contexto,
-                        ft.Text("Mood", weight=ft.FontWeight.BOLD, color=COLOR_DORADO),
-                        chips_mood,
+                        ft.Row(
+                            [
+                                ft.Column(
+                                    [
+                                        ft.Text("Puntuación", style=estilo(negrita=True)),
+                                        selector,
+                                        f_nota,
+                                    ],
+                                    expand=True,
+                                    spacing=8,
+                                ),
+                                ft.Column(
+                                    [
+                                        ft.Text("Contexto", color=COLOR_DORADO, style=estilo(negrita=True)),
+                                        chips_contexto,
+                                        ft.Text("Mood", color=COLOR_DORADO, style=estilo(negrita=True)),
+                                        chips_mood,
+                                    ],
+                                    expand=True,
+                                    spacing=8,
+                                ),
+                            ],
+                            vertical_alignment=ft.CrossAxisAlignment.START,
+                            spacing=24,
+                        ),
                     ],
                     scroll=ft.ScrollMode.AUTO,
                     spacing=10,
                 ),
             ),
             actions=[
-                ft.TextButton("Cancelar", on_click=lambda _: cerrar_dialogo(page, dialogo)),
-                ft.ElevatedButton("Guardar", bgcolor=COLOR_ROJO, color="#FFFFFF", on_click=guardar),
+                BotonTexto("Cancelar", on_click=lambda _: cerrar_dialogo(page, dialogo)),
+                BotonRojo("Guardar", bgcolor=COLOR_ROJO, color="#FFFFFF", on_click=guardar),
             ],
         )
         abrir_dialogo(page, dialogo)
@@ -667,24 +744,24 @@ class AplicacionCine:
             expand=True,
             value="metricas",
             options=[
-                ft.dropdown.Option(key="metricas", text="Basado en mis métricas"),
-                ft.dropdown.Option(key="filtros", text="Elegir filtros"),
+                ft.DropdownOption(key="metricas", text="Basado en mis métricas"),
+                ft.DropdownOption(key="filtros", text="Elegir filtros"),
             ],
-            on_change=cambio_modo,
+            on_select=cambio_modo,
         )
         self.rec_genero = ft.Dropdown(
             label="Género",
             expand=True,
             value="todos",
-            options=[ft.dropdown.Option(key="todos", text="Cualquiera")]
-            + [ft.dropdown.Option(key=str(g["id_genero"]), text=g["nombre"]) for g in self.generos],
+            options=[ft.DropdownOption(key="todos", text="Cualquiera")]
+            + [ft.DropdownOption(key=str(g["id_genero"]), text=g["nombre"]) for g in self.generos],
         )
         self.rec_mood = ft.Dropdown(
             label="Mood o contexto (prioriza tus pendientes)",
             expand=True,
             value="ninguno",
-            options=[ft.dropdown.Option(key="ninguno", text="Sin preferencia")]
-            + [ft.dropdown.Option(key=str(e["id_etiqueta"]), text=e["nombre"]) for e in self.etiquetas],
+            options=[ft.DropdownOption(key="ninguno", text="Sin preferencia")]
+            + [ft.DropdownOption(key=str(e["id_etiqueta"]), text=e["nombre"]) for e in self.etiquetas],
         )
         self.rec_anio = ft.TextField(
             label="Año mínimo aproximado", width=220, keyboard_type=ft.KeyboardType.NUMBER
@@ -696,7 +773,7 @@ class AplicacionCine:
         )
         self.rec_subs = ft.Switch(label="Solo en mis suscripciones", value=True, active_color=COLOR_ROJO)
         self.rec_carta = ft.Container(
-            alignment=ft.alignment.center,
+            alignment=CENTRO,
             padding=10,
             content=ft.Text(
                 "Elegí cómo buscar y tocá “Buscar recomendación”.",
@@ -707,13 +784,13 @@ class AplicacionCine:
 
         return ft.Column(
             [
-                ft.Text("Una sola carta", size=22, weight=ft.FontWeight.BOLD, color=COLOR_DORADO),
+                ft.Text("Una sola carta", size=22, color=COLOR_DORADO, style=estilo(negrita=True)),
                 self.rec_modo,
                 self.rec_filtros,
                 ft.Row(
                     [
                         self.rec_subs,
-                        ft.ElevatedButton(
+                        BotonRojo(
                             "Buscar recomendación",
                             icon=ft.Icons.LOCAL_MOVIES,
                             bgcolor=COLOR_ROJO,
@@ -748,12 +825,20 @@ class AplicacionCine:
             mood = None
             anio = None
             if genero is None:
-                mostrar_snack(page, "Todavía no tenés películas vistas. Usá 'Elegir filtros' o cargá tu diario.", COLOR_ROJO)
+                mostrar_snack(
+                    page,
+                    "Todavía no tenés películas vistas. Usá 'Elegir filtros' o cargá tu diario.",
+                    COLOR_ROJO,
+                )
                 return
 
         proveedores = db.activas_ids() if self.rec_subs.value else None
         if proveedores is not None and not proveedores:
-            mostrar_snack(page, "No tenés plataformas activas. Activalas en Mis Plataformas o apagá el filtro.", COLOR_ROJO)
+            mostrar_snack(
+                page,
+                "No tenés plataformas activas. Activalas en Mis Plataformas o apagá el filtro.",
+                COLOR_ROJO,
+            )
             return
 
         self.criterio = {
@@ -791,10 +876,7 @@ class AplicacionCine:
             for r in resultados:
                 if r["id"] not in self.excluidos:
                     self.excluidos.add(r["id"])
-                    self.cola.append({
-                        "id": r["id"],
-                        "es_pendiente": False,
-                    })
+                    self.cola.append({"id": r["id"], "es_pendiente": False})
 
     def siguiente_carta(self):
         page = self.page
@@ -852,9 +934,9 @@ class AplicacionCine:
         insignias = ft.Row(
             [
                 ft.Container(
-                    content=ft.Text(p["provider_name"], size=11, weight=ft.FontWeight.BOLD, color="#0B0B0F"),
+                    content=ft.Text(p["provider_name"], size=11, color="#0B0B0F", style=estilo(negrita=True)),
                     bgcolor=COLOR_DORADO,
-                    padding=ft.padding.symmetric(horizontal=8, vertical=4),
+                    padding=pad_simetrico(horizontal=8, vertical=4),
                     border_radius=6,
                 )
                 for p in c["plataformas"]
@@ -864,7 +946,7 @@ class AplicacionCine:
             run_spacing=6,
         )
         botones = [
-            ft.ElevatedButton(
+            BotonRojo(
                 "La veo ahora",
                 icon=ft.Icons.PLAY_CIRCLE_OUTLINE,
                 bgcolor=COLOR_ROJO,
@@ -874,14 +956,14 @@ class AplicacionCine:
         ]
         if not c["es_pendiente"]:
             botones.append(
-                ft.OutlinedButton(
+                BotonContorno(
                     "Guardar en pendientes",
                     icon=ft.Icons.BOOKMARK_ADD_OUTLINED,
                     on_click=self.guardar_pendiente,
                 )
             )
         botones.append(
-            ft.TextButton("Paso / Otra", icon=ft.Icons.SKIP_NEXT, on_click=self.descartar_carta)
+            BotonTexto("Paso / Otra", icon=ft.Icons.SKIP_NEXT, on_click=self.descartar_carta)
         )
         duracion = f"{c['duracion']} min" if c["duracion"] else "Duración desconocida"
 
@@ -889,15 +971,19 @@ class AplicacionCine:
             width=520,
             padding=20,
             bgcolor=COLOR_TARJETA,
-            border=ft.border.all(2, COLOR_DORADO),
+            border=borde_todo(2, COLOR_DORADO),
             border_radius=12,
             content=ft.Column(
                 [
                     ft.Row(
                         [
                             ft.Icon(ft.Icons.CONFIRMATION_NUMBER_OUTLINED, color=COLOR_DORADO),
-                            ft.Text("TU PRÓXIMA FUNCIÓN", size=13, weight=ft.FontWeight.BOLD,
-                                    color=COLOR_DORADO, letter_spacing=2),
+                            ft.Text(
+                                "TU PRÓXIMA FUNCIÓN",
+                                size=13,
+                                color=COLOR_DORADO,
+                                style=estilo(negrita=True, espaciado=2),
+                            ),
                         ]
                     ),
                     ft.Divider(color=COLOR_BORDE),
@@ -906,9 +992,9 @@ class AplicacionCine:
                             poster(c["poster"], 170, 255),
                             ft.Column(
                                 [
-                                    ft.Text(c["titulo"], size=22, weight=ft.FontWeight.BOLD),
+                                    ft.Text(c["titulo"], size=22, style=estilo(negrita=True)),
                                     ft.Text(f"{c['anio'] or '—'}  ·  {duracion}", size=13, color=COLOR_TEXTO_SUAVE),
-                                    ft.Text(c["motivo"], italic=True, color=COLOR_DORADO, size=13),
+                                    ft.Text(c["motivo"], size=13, color=COLOR_DORADO, style=estilo(cursiva=True)),
                                     insignias,
                                 ],
                                 spacing=10,
@@ -988,7 +1074,7 @@ class AplicacionCine:
                             ft.Text(titulo, size=12, color=COLOR_TEXTO_SUAVE),
                         ]),
                         ft.Divider(color=COLOR_BORDE),
-                        ft.Text(valor, size=26, weight=ft.FontWeight.BOLD, color=COLOR_DORADO),
+                        ft.Text(valor, size=26, color=COLOR_DORADO, style=estilo(negrita=True)),
                     ],
                     spacing=6,
                 ),
@@ -1011,7 +1097,7 @@ class AplicacionCine:
             return ft.Column(
                 [
                     ft.Row([
-                        ft.Text(nombre, expand=True, weight=ft.FontWeight.BOLD),
+                        ft.Text(nombre, expand=True, style=estilo(negrita=True)),
                         ft.Text(f"{cantidad} vistas · {texto_promedio(promedio)}", size=12, color=COLOR_TEXTO_SUAVE),
                     ]),
                     ft.ProgressBar(value=(promedio or 0) / 5, color=color, bgcolor=COLOR_FICHA, bar_height=8),
@@ -1030,15 +1116,17 @@ class AplicacionCine:
         def bloque(titulo, filas):
             return caja_ticket(
                 ft.Column(
-                    [ft.Text(titulo, size=16, weight=ft.FontWeight.BOLD, color=COLOR_DORADO),
-                     ft.Divider(color=COLOR_BORDE)] + (filas or [vacio("Todavía no hay películas vistas.")]),
+                    [
+                        ft.Text(titulo, size=16, color=COLOR_DORADO, style=estilo(negrita=True)),
+                        ft.Divider(color=COLOR_BORDE),
+                    ] + (filas or [vacio("Todavía no hay películas vistas.")]),
                     spacing=12,
                 )
             )
 
         return ft.Column(
             [
-                ft.Text("Mis Métricas", size=22, weight=ft.FontWeight.BOLD, color=COLOR_DORADO),
+                ft.Text("Mis Métricas", size=22, color=COLOR_DORADO, style=estilo(negrita=True)),
                 kpis,
                 bloque("Géneros favoritos", generos),
                 bloque("Rendimiento por mood", moods),
@@ -1097,9 +1185,9 @@ class AplicacionCine:
         cargar()
         return ft.Column(
             [
-                ft.Text("Mis Plataformas", size=22, weight=ft.FontWeight.BOLD, color=COLOR_DORADO),
+                ft.Text("Mis Plataformas", size=22, color=COLOR_DORADO, style=estilo(negrita=True)),
                 ft.Text("Activá las plataformas que tenés contratadas en Argentina.", color=COLOR_TEXTO_SUAVE),
-                ft.ElevatedButton(
+                BotonRojo(
                     "Sincronizar plataformas de Argentina desde TMDB",
                     icon=ft.Icons.SYNC,
                     bgcolor=COLOR_ROJO,
@@ -1130,7 +1218,7 @@ def main(page: ft.Page):
     app = AplicacionCine(page)
     page.add(app.construir())
 
-    if not TMDB_API_KEY:
+    if not TMDB_API_KEY or TMDB_API_KEY == "PEGAR_ACA_TU_API_KEY":
         mostrar_snack(
             page,
             "Falta la API Key de TMDB en src/config.py. Podés cargar películas a mano mientras tanto.",
