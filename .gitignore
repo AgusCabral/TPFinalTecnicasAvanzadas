@@ -1,1 +1,5 @@
-peliculas.db
+__pycache__/
+*.py[cod]
+build/
+*.spec
+*.db
